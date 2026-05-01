@@ -1,0 +1,15 @@
+train: train/images
+val: valid/images
+test: test/images
+
+names: 
+  0: 0
+  1: Fist
+  2: Hand
+  3: R1
+  4: R1 Blue
+  5: R2 Fake
+  6: R2 Fake Blue
+  7: R2 Real
+  8: R2 Real Blue
+  9: Sph
