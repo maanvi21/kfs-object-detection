@@ -33,6 +33,62 @@ private:
     const int outputSize = 1 * 20 * 8400 * sizeof(float); 
     const float confThreshold = 0.5f;
     const float nmsThreshold = 0.45f;
+   //added Non-Maximum Suppression logic. What each part does has been described in the comments briefly.
+    void performRotatedNMS(
+        const std::vector<cv::RotatedRect>& boxes,
+        const std::vector<float>& confidences,
+        const std::vector<int>& classIds,
+        std::vector<int>& keepIndices
+    ) {
+        std::vector<int> indices(boxes.size());
+        for (size_t i = 0; i < indices.size(); ++i) {
+            indices[i] = i;
+        }
+
+        // Sort indices by confidence descending
+        std::sort(indices.begin(), indices.end(), [&confidences](int idx1, int idx2) {
+            return confidences[idx1] > confidences[idx2];
+        });
+
+        std::vector<bool> isRemoved(boxes.size(), false);
+
+        for (size_t i = 0; i < indices.size(); ++i) {
+            int idx1 = indices[i];
+            if (isRemoved[idx1]) continue;
+
+            keepIndices.push_back(idx1);
+
+            for (size_t j = i + 1; j < indices.size(); ++j) {
+                int idx2 = indices[j];
+                if (isRemoved[idx2]) continue;
+
+                // Only suppress boxes of the SAME predicted class
+                if (classIds[idx1] != classIds[idx2]) continue;
+
+                // Calculate Rotated Intersection Area
+                std::vector<cv::Point2f> intersectionPoints;
+                int intersectionType = cv::rotatedRectangleIntersection(boxes[idx1], boxes[idx2], intersectionPoints);
+
+                if (intersectionType == cv::INTERSECT_NONE) continue;
+
+                float intersectionArea = 0.0f;
+                if (!intersectionPoints.empty()) {
+                    intersectionArea = cv::contourArea(intersectionPoints);
+                }
+
+                // Calculate IoU (Intersection over Union)
+                float area1 = boxes[idx1].size.width * boxes[idx1].size.height;
+                float area2 = boxes[idx2].size.width * boxes[idx2].size.height;
+                float unionArea = area1 + area2 - intersectionArea;
+
+                float iou = (unionArea > 0) ? (intersectionArea / unionArea) : 0.0f;
+
+                if (iou > nmsThreshold) {
+                    isRemoved[idx2] = true;
+                }
+            }
+        }
+    }
 
 public:
     TensorRT_OBB(const std::string& enginePath) {
