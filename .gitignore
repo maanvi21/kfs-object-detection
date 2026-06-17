@@ -1,0 +1,9 @@
+# Git Ignore File
+*.pt
+*.onnx
+*.engine
+*.zip
+runs/
+__pycache__/
+build/
+.ipynb_checkpoints/
